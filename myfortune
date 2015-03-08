@@ -1,0 +1,417 @@
+#!/bin/bash
+
+# ☮                                                                    ☮
+# 11.11.2014 Versione 0.0
+# "myfortune" visualizza i cookie "fortune" dentro i fumetti "cowsay"
+# "myfortune p" visualizza solo "frasi di pace "  dai files
+#               frasi-di-pace-it  e  frasi-di-pace-it.dat
+# mario.q59
+# 24.02.2015 Versione 0.05
+# ☮                                                                    ☮
+
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  http://www.gnu.org/licenses/gpl.html
+
+# ######################################################################
+
+# ####################
+#                    #
+#   help  ????       #
+#   myfortune help   #
+#                    #
+# ####################
+
+# la lista di tutti i files cow viene fatta direttamente nel case allcow|ac
+# lista selezionata dei files cow
+MYcowShortList="tux cock duck bud-frogs pony-smaller"
+MYcowLongList="tux tux koala apt pony-smaller daemon vader www duck cower bud-frogs cock default eyes hellokitty kitty suse three-eyes tux tux"
+MycowPeaceList="tux cock duck bud-frogs pony-smaller suse kitty three-eyes"
+# ###############
+# cowsay -l  fisualizza tutti i cow disponibili
+# ###############
+
+# argomento predefinito per myfortune
+DEFAULTcowList=mll
+# ###############
+# mylist | ml
+# mylonglist | mll
+# allcow | ac
+# pace | p
+# ###############
+
+# ################################################
+# ################################################
+#                                                #
+#  Da qui in giù non dovresti modificare niente  #
+#                                                #
+# ################################################
+# ################################################
+
+# ###########################################################
+# da man fortune
+# FILES
+# Note: these are the defaults as defined at compile time.
+#
+# /usr/share/games/fortunes
+# 	  Directory for innoffensive fortunes.
+# /usr/share/games/fortunes/off
+# 	  Directory for offensive fortunes.
+#
+# If a particular set of fortunes is particularly unwanted, there is an easy solution: delete the
+# associated .dat file.  This leaves the data intact, should the file later be wanted, but  since
+# fortune no longer finds the pointers file, it ignores the text file.
+# ###########################################################
+
+# file con frasi di pace
+PACEfile="frasi-di-pace-it"
+# ###############
+
+# path di $PACEfile
+FORTUNESfilesPhat="/usr/share/games/fortunes/"
+# ###############
+
+# colori da usare
+function Cb { # ciano grassetto
+	echo -e "\e[36;1m$1\e[0m"
+}
+function Rb { # rosso grassetto
+	echo -e "\e[31;1m$1\e[0m"
+}
+function Wb { # bianco grassetto
+	echo -e "\e[37;1m$1\e[0m"
+}
+function Wbu { # bianco grassetto sottolinato
+	echo -e "\e[37;4;1m$1\e[0m"
+}
+function G { # giallo
+	echo -e "\e[33m$1\e[0m"
+}
+function Gb { # giallo grassetto
+	echo -e "\e[33;1m$1\e[0m"
+}
+# ###############
+
+
+# Nell'installazione standard di di debian, ubuntu, mint, la variabile
+# $LANG è it_IT.UTF-8; nella localizzazione il pacchetto fortune
+# fa riferimento a 'it' non 'it_IT.UTF8', qui sotto correggo il percorso del file da
+# passare come argomento di fortune per tutte le localizzazioni
+# nel folder /usr/share/games/fortunes/
+function CKlang {
+	if [[ -z  $LANG && -r /etc/default/locale ]]; then
+		. /etc/default/locale
+		MYenvLang=${LANG/.*/}
+	else
+		MYenvLang=${LANG/.*/}
+	fi
+
+	MYlang=$MYenvLang
+
+	DIRSlang="`ls -l --time-style="long-iso" $FORTUNESfilesPhat | grep ^d | awk '{print $8}'`"
+	# DIRSlang="`ls -l $FORTUNESfilesPhat | grep ^d | awk '{print $9}'`"
+	for DIRlang in $DIRSlang ; do
+		if [[ $DIRlang == $MYenvLang ]]; then
+			MYlang=$DIRlang/
+			break
+		elif [[ $DIRlang == ${MYenvLang/_*/} ]]; then
+			MYlang=$DIRlang/
+			break
+		else
+			unset MYlang
+		fi
+	done
+
+	if [[ $1 == noslash && -n $MYlang ]]; then
+		echo ${MYlang%/}
+	else
+		echo $MYlang
+	fi
+
+}
+
+
+function myfortune {
+
+	# se non c'è un'argomento lo scelgo io
+	if [ -z $1 ]; then
+		MYselection=$DEFAULTcowList
+	elif [ -n $1 ]; then
+		MYselection=$1
+	fi
+
+	# cookie fortune vengono richiamati come comando nei case appropriati
+	if [[ $MYselection =~ (pace|p) ]]; then
+		MYfortunePace="`fortune -c $(CKlang)$PACEfile`"
+	elif [[ $MYselection =~ (ac|allcow|ml|mylist|mll|mylonglist) ]]; then
+		MYfortune="`fortune -e -c $(CKlang)`"  # -e tutti i file fortune localizzati in uguale % di casualità
+		# MYfortune="`fortune -a -c`"  # -a tutti i files in % proporzionata ai cookie contenuti
+	fi
+
+	# scelgo a caso tra cowsay e cowthink
+	COWcommand="cowsay\ncowthink"
+	COWcommand=`echo -e "$COWcommand" | shuf -n1`
+	COWcommand="$COWcommand -n -f"
+	# COWcommand="$COWcommand -W 72 -f"
+
+	case $MYselection in
+		allcow|ac)
+			MYcow=`ls /usr/share/cowsay/cows/*.cow | sort -R | shuf -n1`
+			MYcow=`basename $MYcow`
+			MYcow=${MYcow/.cow/}
+			# MYfortune="`fortune -e -c $(CKlang)`"
+			MYfortuneHeadFile="`echo -e "$MYfortune" | head -1`"
+			MYfortune="`echo -e "$MYfortune" | sed "/^%/d;/$MYfortuneHeadFile/d" | $COWcommand $MYcow`"
+			printfortune "$MYfortune" "$MYfortuneHeadFile"
+		;;
+		mylist|ml)
+			MYcow=`echo "$MYcowShortList" | sed "s/ /\n/g" | sort -R | shuf -n1`
+			# MYfortune="`fortune -e -c $(CKlang)`"
+			MYfortuneHeadFile="`echo -e "$MYfortune" | head -1`"
+			MYfortune="`echo -e "$MYfortune" | sed "/^%/d;/$MYfortuneHeadFile/d" | $COWcommand $MYcow`"
+			printfortune "$MYfortune" "$MYfortuneHeadFile"
+		;;
+		mylonglist|mll)
+			MYcow=`echo "$MYcowLongList" | sed "s/ /\n/g" | sort -R | shuf -n1`
+			# MYfortune="`fortune -e -c $(CKlang)`"
+			MYfortuneHeadFile="`echo -e "$MYfortune" | head -1`"
+			MYfortune="`echo -e "$MYfortune" | sed "/^%/d;/$MYfortuneHeadFile/d" | $COWcommand  $MYcow`"
+			printfortune "$MYfortune" "$MYfortuneHeadFile"
+		;;
+		pace|p)
+			if [[ -r "$FORTUNESfilesPhat$(CKlang)$PACEfile.dat" && -r "$FORTUNESfilesPhat$(CKlang)$PACEfile" ]]; then
+				MYcow=`echo "$MycowPeaceList" | sed "s/ /\n/g" | shuf -n1`
+				# MYfortunePace="`fortune -c $(CKlang)$PACEfile`"
+				MYfortuneHeadPaceFile="`echo -e "$MYfortunePace" | head -1 | sed "s/[(]//;s/[)]//"`"
+				MYfortuneHeadPaceFile=`basename $MYfortuneHeadPaceFile`
+				MYfortune="`echo -e "$MYfortunePace" | sed "/^%/d;/$MYfortuneHeadPaceFile/d" | $COWcommand $MYcow`"
+				printfortune "$MYfortune" "($MYfortuneHeadPaceFile)"
+			else
+				USERfolder="`cat /etc/passwd | grep $USER | awk -F: '{print $6}'`/Scaricati"
+				cat << NOPEACEfile
+$(Wb "------------------------------")
+ $(Cb "non sono stati trovati i riferimenti corretti per i files")
+    $(Wb "\"$FORTUNESfilesPhat$(CKlang)$PACEfile\"")
+    $(Wb "\"$FORTUNESfilesPhat$(CKlang)$PACEfile.dat\"")
+
+ $(Cb "scarica i files"):
+    "$(Wb "$PACEfile")" e "$(Wb "$PACEfile.dat")"
+    come "$(G "root")" crea un link simbolico a questi files nella cartella:
+    "$(Wb "$FORTUNESfilesPhat$(CKlang)")"
+
+ $(Cb "comando da dare"):
+    $(Wb "Esempio"):
+    se i files "$(Wb "$PACEfile")" e "$(Wb "$PACEfile.dat")"
+    sono nella tua cartella "$(G "$USERfolder")"
+    i comandi da eseguire saranno:
+ $(Rb "sudo ln -st $FORTUNESfilesPhat$(CKlang) $USERfolder/$PACEfile")
+ $(Rb "sudo ln -st $FORTUNESfilesPhat$(CKlang) $USERfolder/$PACEfile.dat")
+
+  $(Cb "Verifica se tutto è ok con questo comando"):
+    $(Rb "fortune -ef $(CKlang)")  		(avrai un'output $(Wbu simile) a questo)
+    100,00% $FORTUNESfilesPhat$(CKlang)
+        33,33% $(G "$PACEfile")
+        33,33% ubuntu-server-tips-it
+        33,33% debian-hints
+
+  se nella lista vedi il file $(Gb "$PACEfile") tutto è OK
+$(Wb "------------------------------")
+NOPEACEfile
+			fi
+		;;
+		v|ver|i|info)
+			# tutto stò casino per vedere i messaggini
+			# chissà come mai mi è venuta sta idea
+			# giusto per complicarsi la noia.
+			C="☮" # carattere marcatore riga https://trendimpulse.wordpress.com/tag/one-line-ascii-art/
+			if [ $1 == ver -o $1 == v ]; then
+				# pattern per data  [0-9]\{2\}\.[0-9]\{2\}\.201[5-9]\{1\}
+				# 2 numeri giorno , 1 punto, 2 numeri mese, 1 punto, 4 numeri anno
+				# pattern ver [0-9]\{1\}\.[5-9]\{1\}$
+				# 1 numero, 1 punto, 1 numero 0-9, 1 numero 5-9, fine riga
+				PATTERNdata="[0-9]\{2\}\.[0-9]\{2\}\.201[5-9]\{1\}" # 28.02.2015
+				PATTERNver="[0-9]\{1\}\.[0-9]\{1\}[5-9]\{1\}$" # 9.99
+				VER=$(sed -n "/$PATTERNdata Versione.$PATTERNver/p" $0 | sed "s/# /$C  /")
+				echo -e "$(Cb "`basename $0`") $VER"
+			elif  [ $1 == info -o $1 == i ]; then
+				# pattern esatto riga info  /^# [$C]\{1\}[ ]\{68\}[$C]\{1\}$/
+				# riga "inizia con #, uno spazio, un $C, 68 spazi, un $C, fine riga
+				PATTERNrow="^# [$C]\{1\}[ ]\{68\}[$C]\{1\}$"
+				VER=$(sed -n "/$PATTERNrow/,/$PATTERNrow/p" $0 | sed "s/^# $C/$C  /g ; s/^# /  /g ; s/^$C/\n$C/ ; s/$C$/$C /")
+				echo -e "$VER" | cowthink -nf tux
+			fi
+		;;
+		*)
+			if [[ $1 =~ (help|h) ]];then
+				QX=$(CKlang noslash)
+				if [ -z $QX ]; then unset QX ; else QX=" (localizzati \"$QX\")" ;fi
+				HELPnoarg="$(Gb "------- ")$(Rb "`basename $0` $1")$(Gb " -------")
+ $(Cb "`basename $0`\n")  Visualizza i cookie fortune$(G "$QX") dentro fumetti (ASCI art)\r
+ $(Cb "`basename $0`\n")  Avviato con l'argomento $(Cb p)|$(Cb pace) visualizza solo messaggi di pace"
+			else
+				HELPnoarg=" $(Cb "`basename $0`") $(Rb "$1") 	argomento non valido"
+			fi
+		# se non viene dato un argomento valido visualizzo una spiegazione
+			if [[ $DEFAULTcowList =~ (mylonglist|mll|mylist|ml) ]]; then
+				HELParg="    Visualizza un \"cookie fortune\" a caso dentro un
+    fumetto (ASCI art) selezionato a caso dalla lista
+    predefinita \""$(G "$DEFAULTcowList")"\".
+    Equivale al comando "$(Cb "`basename $0` $DEFAULTcowList")
+			elif [[ $DEFAULTcowList =~ (allcow|ac) ]]; then
+				HELParg="    Visualizza un \"cookie fortune\" a caso dentro un
+    fumetto (ASCI art) selezionato a caso tra tutti
+    quelli disponibili \""$(G "$DEFAULTcowList")"\".
+    Equivale al comando "$(Cb "`basename $0` $DEFAULTcowList")
+			elif [[ $DEFAULTcowList =~ (pace|p) ]]; then
+				HELParg="    Se sono stati installati i files dei messaggi di pace
+    \""$(G "$PACEfile")"\" e \""$(G "$PACEfile.dat")"\"
+    saranno visualizzati solo $(Wb "frasi di Pace") dentro una lista
+    selezionata di fumetti. (ASCI art)"
+			fi
+			cat <<NOarg
+`echo -e "$HELPnoarg"`
+$(Wb "------------------------------")
+ $(Cb "`basename $0`") 	Viene avviato col l'argomento predefinito $(Gb "$DEFAULTcowList")
+`echo -e "$HELParg"`
+
+ $(Wb "oppure")
+ $(Cb "`basename $0`") 	con un'argometo valido
+ $(Cb "`basename $0`") [ ($(Cb "mylist")|$(Cb "ml")) | ($(Cb "mylonglist")|$(Cb "mll")) | ($(Cb "allcow")|$(Cb "ac")) | ($(Cb "pace")|$(Cb "p")) ]
+
+ $(Cb "`basename $0`") ($(Cb "mylist")|$(Cb "ml"))
+    Visualizza un "cookie fortune" a caso dento un fumetto
+    selezionato da una lista.
+
+ $(Cb "`basename $0`") ($(Cb "mylonglist")|$(Cb "mll"))
+    Visualizza un "cookie fortune" a caso dentro un fumetto
+    selezionato da una lista estesa.
+
+ $(Cb "`basename $0`") ($(Cb "allcow")|$(Cb "ac"))
+    Visualizza un "cookie fortune" a caso dentro un fumetto
+    selezionato tra tutti quelli disponibili.
+
+ $(Cb "`basename $0`") ($(Cb "pace")|$(Cb "p"))
+    Visualizza solo messaggi di pace
+    dento un fumetto selezionato da una lista.
+
+$(showfortunes CK).
+
+ $(Gb "I messaggi fortune visualizzabili sono"):
+    $(G "$(showfortunes | sed "s/^    /        /g")")
+
+$(Wb "------------------------------")
+ $(Cb "`basename $0`") ($(Cb ver)|$(Cb v)|$(Cb info)|$(Cb i)|$(Cb help)|$(Cb h)) 	versione info. ed aiuto
+ $(Cb "`basename $0`") 	con un'argomento non valido visualizza quello che vedi qui.
+$(Wb "------------------------------")
+NOarg
+
+		;;
+	esac
+} # end function myfortune
+
+function showfortunes { # visualizza sullo schermo i files fortune validi.
+	USERdir=`cat /etc/passwd | grep $USER | awk -F: '{print $6}'`
+	if [ -f $USERdir/.xfortunes_filesx ]; then rm $USERdir/.xfortunes_filesx ; fi
+	# non riesco prendere l'output di fortune, lo mando su un file
+	fortune -ef $(CKlang) 2>>$USERdir/.xfortunes_filesx
+	INSTALLEDcookie="`cat $USERdir/.xfortunes_filesx | sed "/^$/d"`"
+	rm $USERdir/.xfortunes_filesx
+	if [ -z $1 ]; then
+		if [[ `echo -e "$INSTALLEDcookie" | grep $PACEfile` ]]; then
+			echo -e "$INSTALLEDcookie"
+		else
+			echo "$INSTALLEDcookie"
+			echo -e "$(Wb "")\n i files \"$(Gb "$PACEfile")\" e \"$(Gb "$PACEfile.dat")\" non sono installati
+ prova il comando \"$(Cb "$(basename $0) pace")\" per maggiori info"
+		fi
+	elif [ $1 == CK ]; then
+		if [[ `echo -e "$INSTALLEDcookie" | grep $PACEfile` ]]; then
+			echo -e "$(Wb "") I files \"$(Gb "$PACEfile")\" e \"$(Gb "$PACEfile.dat")\"
+ sono installati correttamente"
+		else
+			echo -e " I files \"$(Gb "$PACEfile")\" e \"$(Gb "$PACEfile.dat")\" non sono installati
+ prova il comando \"$(Cb "$(basename $0) pace")\" per maggiori info"
+		fi
+	fi
+}
+
+function printfortune { # 2 argomenti '$1 cookie fortune' '$2 nome file fortune'
+	COWsaythink=${COWcommand%% -*} # dalla fine tolgo tutte le opzioni "-e -c"
+	COWsaythink=${COWsaythink#cow} # dall'inizio tolgo "cow"
+	COWsaythink=${COWsaythink/say/dice... .  .} # sostituisco (say|think)
+	COWsaythink=${COWsaythink/think/pensa°°° °  °}
+	#Cb "------- ${SHELL/'/bin/'/} ${BASH_VERSION/-*/} -------"
+	echo -e "$1"
+	Cb "\"$MYcow\" $COWsaythink$2"
+}
+
+# visualizzo i messaggi fortune solo da terminale in sessione X
+if [[ -z $SSH_CONNECTION && `tty | grep -v ttyX` ]]; then
+
+	# controllo se i pacchetti necessari sono installati
+	if [[ "`which fortune`" && "`which cowsay`" ]]; then
+		myfortune $1
+
+	# controllo un pacchetto alla volta e suggerisco cosa fare
+	else
+		echo -e $(Cb " --- `basename $0`")
+		echo -e $(Wb " --- installazioni richeste ---")
+		echo -e $(Wb " ------------------------------")
+
+		if [[ ! "`dpkg -l | grep cowsay`" ]]; then
+			cat <<CKcow
+  $(Cb "installa \"cowsay\"")
+  $(Rb "sudo apt-get install cowsay")
+  $(G "Description-it"):
+    $(G "mucca parlante configurabile
+    Cowsay (o cowthink) trasformerà i vostri testi in felici mucche ASCII con
+    fumetti con parlato (o pensieri). Se non vi piacciono le mucche, è
+    disponibile l'arte ASCII per rimpiazzarle con qualche altra creatura (Tux,
+    il demone BSD, draghi e una stragrande varietà di animali, dal tacchino
+    all'elefante dentro un serpente).
+    Homepage: http://www.nog.net/~tony/warez/cowsay.shtml")
+ $(Wb "------------------------------")
+CKcow
+		fi
+
+		if [[ ! "`dpkg -l | grep fortune`" ]]; then
+			cat <<CKfortune
+  $(Cb "Installa qualche pacchetto \"fortune\"")
+  ad esempio "fortunes-debian-hints" e "fortunes-ubuntu-server"
+  $(Rb "sudo apt-get install fortunes-debian-hints fortunes-ubuntu-server")
+  oppure qualche altro paccetto fortune di tua scelta.
+  $(Cb Nota):
+    su "$(Wb UBUNTU)" quando si installano i cookie fortunes, in automatico
+    vengono installate le dipendnze essenziali. Su "$(Wb linux-mint)" questo
+    non avviene e sarà necessario installare anche $(G fortune-mod)".
+  $(Rb "sudo apt-get install fortune-mod fortunes-debian-hints fortunes-ubuntu-server")
+        (non ricordo; forse su "linux-mint"
+        "cowsay" e "fortune-mod" sono già
+        compresi nell'installazione predefinita)
+  $(G "Description-it"):
+    $(G "File di dati contenenti biscottini della fortuna
+    Il programma fortune visualizza epigrammi, conosciuti come biscottini
+    della fortuna, scelti a caso da una selezione di file fortune.
+    .
+    There are far over 15000 different cookies in this package.
+    .
+    You'll need the fortune-mod package to display the cookies.")
+ $(Wb "------------------------------")
+CKfortune
+		fi
+	fi
+else
+	if [ ! -z $SSHLVL ]; then
+		echo -e "\t -- -- -- -- -- -- -- -- -- -- -- -- --"
+		# echo -e "\t$(Cb "`basename $0`")$(Wb " solo da teminale in Xwindow")"
+		# echo -e "\t -- -- -- -- -- -- -- -- -- -- -- -- --"
+	fi
+fi
